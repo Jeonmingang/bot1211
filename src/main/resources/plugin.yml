@@ -1,7 +1,7 @@
 name: ArcLinkDiscordBridge
 main: com.signition.arclink.ArcLinkPlugin
 version: ${project.version}
-api-version: '1.21'
+api-version: 1.21
 author: SignitionGPT
 commands:
   discord:
