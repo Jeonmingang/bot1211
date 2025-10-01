@@ -27,6 +27,7 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
     private boolean broadcastAll;
     private String requiredPerm;
 
+    // notify config
     private boolean notifyLifecycle;
     private boolean notifyJoinQuit;
     private boolean summaryOnShutdown;
@@ -51,12 +52,15 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
         joinCount.set(0);
         quitCount.set(0);
 
+        // Start bot async
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             try {
                 bot = new DiscordBot(this);
                 bot.start(getConfig().getString("discord.token"), guildId);
                 getLogger().info("Discord bot startup submitted.");
-                if (notifyLifecycle) scheduleStartupAnnounce();
+                if (notifyLifecycle) {
+                    scheduleStartupAnnounce();
+                }
             } catch (Exception e) {
                 getLogger().severe("Failed to start Discord bot: " + e.getMessage());
             }
@@ -81,7 +85,9 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
                 sendToDiscordStatus(summary);
             }
         }
-        if (bot != null) try { bot.shutdown(); } catch (Exception ignored) {}
+        if (bot != null) {
+            try { bot.shutdown(); } catch (Exception ignored) {}
+        }
     }
 
     private void reloadLocalConfig() {
@@ -94,6 +100,7 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
         broadcastAll = cfg.getBoolean("minecraft.broadcast_discord_to_all", true);
         requiredPerm = cfg.getString("minecraft.required_permission_to_receive", "");
 
+        // notify section
         notifyLifecycle = cfg.getBoolean("discord.notify.server_lifecycle", true);
         notifyJoinQuit  = cfg.getBoolean("discord.notify.player_join_quit", true);
         summaryOnShutdown = cfg.getBoolean("discord.notify.summary_on_shutdown", true);
@@ -105,7 +112,7 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
         fmtQuit = cfg.getString("discord.notify.quit_format", "❌ {player} 님이 퇴장했습니다. 현재 {online}명.");
     }
 
-    
+    // Use BukkitRunnable to avoid capturing a not-yet-initialized task id
     private void scheduleStartupAnnounce() {
         new org.bukkit.scheduler.BukkitRunnable() {
             int tries = 0;
@@ -130,22 +137,6 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
             }
         }.runTaskTimer(this, 20L, 10L);
     }
-;
-        final int id = getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> {
-            tries[0]++;
-            if (startupAnnounced.get() || tries[0] > 200) {
-                getServer().getScheduler().cancelTask(id);
-                return;
-            }
-            if (bot == null || bot.getChatChannel(statusChannelId) == null) return;
-            String serverName = Bukkit.getServer().getName();
-            int online = Bukkit.getOnlinePlayers().size();
-            String msg = fmtStartup.replace("{server}", serverName).replace("{online}", String.valueOf(online));
-            sendToDiscordStatus(msg);
-            startupAnnounced.set(true);
-            getServer().getScheduler().cancelTask(id);
-        }, 20L, 10L);
-    }
 
     private String readableUptime() {
         long nanos = System.nanoTime() - bootNano;
@@ -155,8 +146,13 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
         return String.format("%dh %dm %ds", h, m, sec);
     }
 
-    public String getChatChannelId() { return chatChannelId; }
-    public String getFmtDiscordToMc() { return fmtDiscordToMc; }
+    public String getChatChannelId() {
+        return chatChannelId;
+    }
+
+    public String getFmtDiscordToMc() {
+        return fmtDiscordToMc;
+    }
 
     public boolean shouldBroadcastTo(Player p) {
         if (broadcastAll) return true;
@@ -168,36 +164,50 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
         DiscordBot b = this.bot;
         if (b == null) return;
         MessageChannel ch = b.getChatChannel(chatChannelId);
-        if (ch != null) ch.sendMessage(content).queue();
+        if (ch != null) {
+            ch.sendMessage(content).queue();
+        }
     }
+
     public void sendToDiscordStatus(String content) {
         DiscordBot b = this.bot;
         if (b == null) return;
         String target = (statusChannelId == null || statusChannelId.isEmpty()) ? chatChannelId : statusChannelId;
         MessageChannel ch = b.getChatChannel(target);
-        if (ch != null) ch.sendMessage(content).queue();
+        if (ch != null) {
+            ch.sendMessage(content).queue();
+        }
     }
 
     public void broadcastFromDiscord(String author, String content) {
-        final String msg = getFmtDiscordToMc().replace("{author}", author).replace("{content}", content);
+        final String msg = getFmtDiscordToMc()
+                .replace("{author}", author)
+                .replace("{content}", content);
         Bukkit.getScheduler().runTask(this, () -> {
-            for (Player p : Bukkit.getOnlinePlayers()) if (shouldBroadcastTo(p)) p.sendMessage(msg);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (shouldBroadcastTo(p)) {
+                    p.sendMessage(msg);
+                }
+            }
             getLogger().info("[Discord] " + author + ": " + content);
         });
     }
 
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
-        String out = fmtMcToDiscord.replace("{player}", e.getPlayer().getName()).replace("{message}", e.getMessage());
+        String out = fmtMcToDiscord
+                .replace("{player}", e.getPlayer().getName())
+                .replace("{message}", e.getMessage());
         sendToDiscord(out);
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         if (!notifyJoinQuit) return;
-        int online = Bukkit.getOnlinePlayers().size();
+        int online = Bukkit.getOnlinePlayers().size(); // includes the joining player
         int j = joinCount.incrementAndGet();
-        String msg = fmtJoin.replace("{player}", e.getPlayer().getName())
+        String msg = fmtJoin
+                .replace("{player}", e.getPlayer().getName())
                 .replace("{online}", String.valueOf(online))
                 .replace("{joins}", String.valueOf(j))
                 .replace("{quits}", String.valueOf(quitCount.get()));
@@ -207,9 +217,10 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         if (!notifyJoinQuit) return;
-        int online = Math.max(0, Bukkit.getOnlinePlayers().size() - 1);
+        int online = Math.max(0, Bukkit.getOnlinePlayers().size() - 1); // minus the quitting player
         int q = quitCount.incrementAndGet();
-        String msg = fmtQuit.replace("{player}", e.getPlayer().getName())
+        String msg = fmtQuit
+                .replace("{player}", e.getPlayer().getName())
                 .replace("{online}", String.valueOf(online))
                 .replace("{joins}", String.valueOf(joinCount.get()))
                 .replace("{quits}", String.valueOf(q));
@@ -220,19 +231,31 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String cmd = command.getName().toLowerCase();
         if (cmd.equals("discordreload")) {
-            if (!sender.hasPermission("arclink.admin")) { sender.sendMessage("§c권한이 없습니다."); return true; }
+            if (!sender.hasPermission("arclink.admin")) {
+                sender.sendMessage("§c권한이 없습니다.");
+                return true;
+            }
             reloadLocalConfig();
             sender.sendMessage("§aArcLink 설정을 다시 읽었습니다.");
             return true;
         }
         if (cmd.equals("discord")) {
-            if (args.length == 0) { sender.sendMessage("§7/discord say <메시지> | /discord reload | /discord stats"); return true; }
+            if (args.length == 0) {
+                sender.sendMessage("§7/discord say <메시지> | /discord reload | /discord stats");
+                return true;
+            }
             if (args[0].equalsIgnoreCase("reload")) {
                 return onCommand(sender, Bukkit.getPluginCommand("discordreload"), "discordreload", new String[0]);
             }
             if (args[0].equalsIgnoreCase("say")) {
-                if (!sender.hasPermission("arclink.use")) { sender.sendMessage("§c권한이 없습니다."); return true; }
-                if (args.length < 2) { sender.sendMessage("§c사용법: /discord say <메시지>"); return true; }
+                if (!sender.hasPermission("arclink.use")) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage("§c사용법: /discord say <메시지>");
+                    return true;
+                }
                 String msg = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
                 sendToDiscord("[서버] " + sender.getName() + ": " + msg);
                 sender.sendMessage("§a전송됨.");
@@ -240,7 +263,9 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
             }
             if (args[0].equalsIgnoreCase("stats")) {
                 String uptime = readableUptime();
-                sender.sendMessage(String.format("§a접속: %d명, 퇴장: %d명, 가동시간: %s", joinCount.get(), quitCount.get(), uptime));
+                String stats = String.format("§a접속: %d명, 퇴장: %d명, 가동시간: %s",
+                        joinCount.get(), quitCount.get(), uptime);
+                sender.sendMessage(stats);
                 return true;
             }
             sender.sendMessage("§7알 수 없는 하위 명령입니다.");
