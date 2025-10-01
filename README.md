@@ -1,4 +1,4 @@
-# ArcLinkDiscordBridge 1.3.3 (Arclight-NeoForge 1.21.1 / Java 21)
+# ArcLinkDiscordBridge 1.3.4 (Arclight-NeoForge 1.21.1 / Java 21)
 
 - 채팅 브리지 (MC ↔ Discord)
 - 서버 시작/종료 알림 + 접속/퇴장 알림
@@ -7,5 +7,5 @@
 ## Build
 ```bash
 mvn -U -B clean package
-# target/ArcLinkDiscordBridge-1.3.3.jar
+# target/ArcLinkDiscordBridge-1.3.4.jar
 ```
