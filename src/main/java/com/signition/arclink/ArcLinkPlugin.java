@@ -105,8 +105,32 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
         fmtQuit = cfg.getString("discord.notify.quit_format", "❌ {player} 님이 퇴장했습니다. 현재 {online}명.");
     }
 
+    
     private void scheduleStartupAnnounce() {
-        final int[] tries = {0};
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int tries = 0;
+            @Override
+            public void run() {
+                tries++;
+                if (startupAnnounced.get() || tries > 200) {
+                    cancel();
+                    return;
+                }
+                if (bot == null || bot.getChatChannel(statusChannelId) == null) return;
+
+                String serverName = Bukkit.getServer().getName();
+                int online = Bukkit.getOnlinePlayers().size();
+                String msg = fmtStartup
+                        .replace("{server}", serverName)
+                        .replace("{online}", String.valueOf(online));
+
+                sendToDiscordStatus(msg);
+                startupAnnounced.set(true);
+                cancel();
+            }
+        }.runTaskTimer(this, 20L, 10L);
+    }
+;
         final int id = getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> {
             tries[0]++;
             if (startupAnnounced.get() || tries[0] > 200) {
