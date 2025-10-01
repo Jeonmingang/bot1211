@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.signition.arclink</groupId>
   <artifactId>ArcLinkDiscordBridge</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <name>ArcLinkDiscordBridge</name>
   <description>Discord ↔ Minecraft chat bridge + lifecycle alerts for Arclight NeoForge 1.21.1 (Java 21)</description>
   <properties>
