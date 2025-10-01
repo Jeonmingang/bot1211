@@ -1,15 +1,16 @@
-# ArcLinkDiscordBridge 1.3.1
+# ArcLinkDiscordBridge 1.3.2 (Arclight-NeoForge 1.21.1 / Java 21)
 
-- Discord ↔ MC chat bridge
-- Server start/stop + join/quit alerts
+- 채팅 브리지 (MC ↔ Discord)
+- 서버 시작/종료 알림 + 접속/퇴장 알림
 - `/discord stats`
 
 ## Build
-```
+```bash
 mvn -U -B clean package
-# target/ArcLinkDiscordBridge-1.3.1.jar
+# target/ArcLinkDiscordBridge-1.3.2.jar
 ```
 
-## Why 1.3.1?
-- Shade minimize **disabled**
-- **Relocated** JDA/OkHttp/Okio/NV-WebSocket classes to avoid classpath conflicts with Arclight or other plugins.
+## Notes
+- Shade **minimizeJar=false** (종료시 의존성 누락 방지)
+- **Relocations** 적용(충돌 회피). *소스 import는 원 패키지(net.dv8tion… 등) 유지*
+- JDA5 ReadyEvent 패키지(`events.session.ReadyEvent`), `BukkitRunnable` 스케줄 적용
