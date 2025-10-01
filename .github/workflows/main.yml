@@ -1,13 +1,64 @@
+name: build-and-upload-jar
 
-name: build
 on:
-  push: { branches: [ main, master ] }
-  pull_request: { branches: [ main, master ] }
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: 21, cache: maven }
-      - run: mvn -U -B package
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build (Maven Shade)
+        run: mvn -U -B -DskipTests package
+
+      - name: Show build outputs
+        run: |
+          echo "Listing target directory:"
+          ls -lah target || true
+
+      - name: Upload shaded JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcLinkDiscordBridge
+          path: |
+            target/ArcLinkDiscordBridge-*.jar
+            !target/*-sources.jar
+            !target/*-javadoc.jar
+          if-no-files-found: error
+          retention-days: 7
+
+  # (선택) 태그 푸시 시 릴리즈에 JAR 업로드
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ArcLinkDiscordBridge
+          path: ./dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ArcLinkDiscordBridge-*.jar
