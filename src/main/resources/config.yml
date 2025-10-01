@@ -1,0 +1,21 @@
+discord:
+  token: "PUT_YOUR_BOT_TOKEN_HERE"
+  guild_id: ""
+  chat_channel_id: ""
+  enable_slash_commands: true
+  enable_message_content_intent: true
+  notify:
+    server_lifecycle: true
+    player_join_quit: true
+    status_channel_id: ""
+    startup_message: "🟢 서버가 시작되었습니다: {server} (현재 온라인 {online}명)."
+    shutdown_message: "🔴 서버가 곧 종료됩니다: {server}. 가동시간 {uptime}, 접속 {joins}명, 퇴장 {quits}명."
+    join_format: "✅ {player} 님이 접속했습니다. 현재 {online}명."
+    quit_format: "❌ {player} 님이 퇴장했습니다. 현재 {online}명."
+    summary_on_shutdown: true
+  format:
+    minecraft_to_discord: "[MC] {player}: {message}"
+    discord_to_minecraft: "§9[디스코드] §f{author}: §7{content}"
+minecraft:
+  broadcast_discord_to_all: true
+  required_permission_to_receive: ""
