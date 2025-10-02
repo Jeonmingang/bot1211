@@ -1,0 +1,14 @@
+# Legendary -> Discord notifier (for Arclight + NeoForge 1.21.1 + Pixelmon 9.3.x)
+discord:
+  token: "PUT_YOUR_BOT_TOKEN"
+  channel_id: "000000000000000000"  # 디스코드 채널 ID (스폰 알림 보낼 곳)
+  mention_everyone: false           # true면 @everyone 붙음
+  mention_role_id: ""               # 특정 역할 멘션하려면 역할 ID 입력 (예: 123456789012345678)
+message:
+  template: "✨ 전설 포켓몬 스폰! **{name}** (#{dex}) — 월드 {dimension}, 바이옴 {biome}, 좌표 {x} {y} {z}{near}"
+  include_biome: true
+  include_coords: true
+  include_dimension: true
+  include_near_player: true
+  # 중복 방지: 같은 종이 연속으로 짧은 시간 내 여러 번 알림되는 것 방지
+  dedupe_seconds: 10

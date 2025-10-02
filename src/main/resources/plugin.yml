@@ -1,0 +1,7 @@
+name: LegendarySpawnDiscord
+version: 1.0.0
+main: com.signition.legendary.LegendarySpawnDiscordPlugin
+api-version: '1.21'
+author: signition
+website: https://reforged.gg/
+description: Send Discord messages when Pixelmon legendary spawns (NeoForge 1.21.1 on Arclight).
