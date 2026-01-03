@@ -2,6 +2,7 @@ package com.signition.arclink;
 
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -15,6 +16,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -27,6 +30,10 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
     private String fmtDiscordToMc;
     private boolean broadcastAll;
     private String requiredPerm;
+
+    // filters
+    private boolean ignoreIfRecipientsNotAll;
+    private List<String> ignorePrefixes;
 
     // notify config
     private boolean notifyLifecycle;
@@ -107,6 +114,18 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
         fmtDiscordToMc = cfg.getString("discord.format.discord_to_minecraft", "§9[디스코드] §f{author}: §7{content}");
         broadcastAll = cfg.getBoolean("minecraft.broadcast_discord_to_all", true);
         requiredPerm = cfg.getString("minecraft.required_permission_to_receive", "");
+
+        // filters
+        ignoreIfRecipientsNotAll = cfg.getBoolean("discord.filter.ignore_if_recipients_not_all", true);
+        ignorePrefixes = new ArrayList<>(cfg.getStringList("discord.filter.ignore_prefixes"));
+        if (ignorePrefixes.isEmpty()) {
+            // sensible defaults (color-stripped match)
+            ignorePrefixes.add("[DM]");
+            ignorePrefixes.add("[전체]");
+            ignorePrefixes.add("[친구]");
+            ignorePrefixes.add("[Friend]");
+            ignorePrefixes.add("[FRIEND]");
+        }
 
         // notify section
         notifyLifecycle = cfg.getBoolean("discord.notify.server_lifecycle", true);
@@ -203,10 +222,51 @@ public class ArcLinkPlugin extends JavaPlugin implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChat(AsyncPlayerChatEvent e) {
+        // --- Privacy filter: do not mirror private / limited-recipient chats to Discord ---
+        if (shouldIgnoreChatToDiscord(e)) {
+            return;
+        }
         String out = fmtMcToDiscord
                 .replace("{player}", e.getPlayer().getName())
                 .replace("{message}", e.getMessage());
         sendToDiscord(out);
+    }
+
+    private boolean shouldIgnoreChatToDiscord(AsyncPlayerChatEvent e) {
+        // 1) Ignore if recipients look like a private / limited chat
+        if (ignoreIfRecipientsNotAll) {
+            int online = Bukkit.getOnlinePlayers().size();
+            int recipients = (e.getRecipients() == null) ? online : e.getRecipients().size();
+
+            // Some implementations may exclude the sender from recipients.
+            // Treat it as public if it reaches everyone (or everyone except the sender).
+            int publicThreshold = Math.max(1, online - 1);
+
+            // If online is 2, a private chat can still look like "public" via recipients size.
+            // In that case, prefix-based filtering below can still block it.
+            if (online >= 3 && recipients < publicThreshold) {
+                return true;
+            }
+        }
+
+        // 2) Ignore if format/message contains known private-chat prefixes
+        String msgN = normalizeForFilter(e.getMessage());
+        String fmtN = normalizeForFilter(e.getFormat());
+        for (String p : ignorePrefixes) {
+            if (p == null || p.isBlank()) continue;
+            String pn = normalizeForFilter(p);
+            if (!pn.isEmpty() && (msgN.contains(pn) || fmtN.contains(pn))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String normalizeForFilter(String s) {
+        if (s == null) return "";
+        String t = ChatColor.translateAlternateColorCodes('&', s);
+        t = ChatColor.stripColor(t);
+        return t == null ? "" : t;
     }
 
     @EventHandler

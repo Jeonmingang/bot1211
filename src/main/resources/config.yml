@@ -4,6 +4,17 @@ discord:
   chat_channel_id: ""
   enable_slash_commands: true
   enable_message_content_intent: true
+  # 채팅 필터 (친구/DM 같은 '부분 수신자' 채팅을 디스코드로 전송하지 않도록)
+  filter:
+    # 수신자가 전체가 아닌 채팅(예: 친구채팅/관리자채팅/로컬채팅 등)을 디스코드로 미러링하지 않습니다.
+    ignore_if_recipients_not_all: true
+    # 포맷/메시지에 아래 문자열이 포함되면 디스코드로 전송하지 않습니다. (색코드 제거 후 비교)
+    ignore_prefixes:
+      - "[DM]"
+      - "[전체]"
+      - "[친구]"
+      - "[Friend]"
+      - "[FRIEND]"
   notify:
     server_lifecycle: true
     player_join_quit: true
